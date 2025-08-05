@@ -176,23 +176,6 @@ def adjust_brightness(brightness_percent: int) -> str:
             return f"❌ Failed to adjust brightness (IP: {BULB_IP}:{BULB_PORT})"
     else:
         return f"❌ Could not retrieve light status to adjust brightness (IP: {BULB_IP}:{BULB_PORT})"
-    status = bulb_controller.get_status()
-    if status and status.get('result'):
-        result = status['result']
-        state = "ON" if result.get('state', False) else "OFF"
-        dimming = result.get('dimming', 0)
-        scene_id = result.get('sceneId', 0)
-        
-        scene_name = "Unknown"
-        if scene_id == 11:
-            scene_name = "Warm White"
-        elif scene_id == 12:
-            scene_name = "Daylight"
-        
-        return f"🔍 Light Status:\n- State: {state}\n- Brightness: {dimming}%\n- Color Mode: {scene_name}\n- IP: {BULB_IP}:{BULB_PORT}"
-    else:
-        return f"❌ Could not retrieve light status (IP: {BULB_IP}:{BULB_PORT})"
-
 
 
 @app.tool()

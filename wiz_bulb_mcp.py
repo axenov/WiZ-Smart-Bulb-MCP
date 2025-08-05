@@ -61,6 +61,15 @@ class WizBulbController:
         }
         return self.send_command(command) is not None
     
+    def turn_on(self) -> bool:
+        """Turn on the bulb"""
+        command = {
+            "id": 1,
+            "method": "setState",
+            "params": {"state": True}
+        }
+        return self.send_command(command) is not None
+    
     def set_warm_white(self, dimming: int = 100) -> bool:
         """Set bulb to warm white"""
         command = {
@@ -94,6 +103,16 @@ def turn_off_bulb() -> str:
         return f"✅ Light turned off successfully (IP: {BULB_IP}:{BULB_PORT})"
     else:
         return f"❌ Failed to turn off light (IP: {BULB_IP}:{BULB_PORT})"
+
+@app.tool()
+def turn_on_bulb() -> str:
+    """Turn on the light/lamp/bulb. Use this when user asks to turn on the light, switch on the lamp, or turn on the bulb.
+    This will turn on the light with its current color and brightness settings."""
+    success = bulb_controller.turn_on()
+    if success:
+        return f"✅ Light turned on successfully (IP: {BULB_IP}:{BULB_PORT})"
+    else:
+        return f"❌ Failed to turn on light (IP: {BULB_IP}:{BULB_PORT})"
 
 @app.tool()
 def set_warm_white(dimming: int = 100) -> str:
@@ -137,6 +156,22 @@ def set_daylight(dimming: int = 100) -> str:
 def get_bulb_status() -> str:
     """Get the current status of the light/lamp/bulb. Use this to check if the light is on/off, current brightness, and color mode.
     This is useful when user asks about the current state of the light."""
+    status = bulb_controller.get_status()
+    if status and status.get('result'):
+        result = status['result']
+        state = "ON" if result.get('state', False) else "OFF"
+        dimming = result.get('dimming', 0)
+        scene_id = result.get('sceneId', 0)
+        
+        scene_name = "Unknown"
+        if scene_id == 11:
+            scene_name = "Warm White"
+        elif scene_id == 12:
+            scene_name = "Daylight"
+        
+        return f"🔍 Light Status:\n- State: {state}\n- Brightness: {dimming}%\n- Color Mode: {scene_name}\n- IP: {BULB_IP}:{BULB_PORT}"
+    else:
+        return f"❌ Could not retrieve light status (IP: {BULB_IP}:{BULB_PORT})"
 
 @app.tool()
 def adjust_brightness(brightness_percent: int) -> str:

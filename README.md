@@ -1,13 +1,15 @@
 # Wiz Smart Bulb MCP Server
 
-A FastMCP server for controlling Wiz smart lights/bulbs via UDP commands with multi-language support and intelligent brightness control.
+An MCP server for controlling Wiz smart lights/bulbs via UDP commands.
 
 ## Features
 
-- Turn off the light/lamp/bulb
-- Set warm white color with intelligent brightness control
-- Set daylight color with intelligent brightness control
-- Check current light status and settings
+- Turn on the light
+- Turn off the light
+- Set warm white color
+- Set daylight color
+- Change brightness
+- Check current light status
 
 ## Setup
 
@@ -34,8 +36,8 @@ python wiz_bulb_mcp.py
 
 The server provides the following MCP tools:
 
-1. **turn_on_bulb()** - Turn on the light with warm white color at full brightness
-2. **turn_off_bulb()** - Turn off the light/lamp/bulb
+1. **turn_on_bulb()** - Turn on the light
+2. **turn_off_bulb()** - Turn off the light
 3. **set_warm_white(dimming: int = 100)** - Set warm white color (always sets warm white)
 4. **set_daylight(dimming: int = 100)** - Set daylight color (always sets daylight)
 5. **adjust_brightness(brightness_percent: int)** - Adjust brightness while maintaining current color scene
@@ -78,4 +80,3 @@ The server understands various natural language requests:
 - "Make it brighter" / "Mach es heller" / "Сделай ярче"
 - "Dim the lights" / "Dimm das Licht" / "Приглуши свет"
 - "Set brightness to 50%" / "Stelle Helligkeit auf 50%" / "Поставь яркость на 50%"
-- "What's the current status?" / "Wie ist der aktuelle Status?" / "Какой текущий статус?"

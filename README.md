@@ -24,6 +24,8 @@ export WIZ_BULB_IP="192.168.1.XX"
 export WIZ_BULB_PORT="38899"
 ```
 
+You can target multiple bulbs by passing a specific `bulb_ip` and optional `bulb_port` to any tool. When no target is provided, the server uses the default IP and port above.
+
 ## Usage
 
 ### Run the MCP Server
@@ -36,13 +38,13 @@ python wiz_bulb_mcp.py
 
 The server provides the following MCP tools:
 
-1. **turn_on_bulb()** - Turn on the light
-2. **turn_off_bulb()** - Turn off the light
-3. **set_warm_white(dimming: int = 100)** - Set warm white color (always sets warm white)
-4. **set_daylight(dimming: int = 100)** - Set daylight color (always sets daylight)
-5. **adjust_brightness(brightness_percent: int)** - Adjust brightness while maintaining current color scene
-6. **get_bulb_status()** - Check current light status (on/off, brightness, color mode)
-7. **get_bulb_info()** - Get light configuration information
+1. **turn_on_bulb(bulb_ip: str | None = None, bulb_port: int | None = None)** - Turn on the light (optionally target a specific bulb)
+2. **turn_off_bulb(bulb_ip: str | None = None, bulb_port: int | None = None)** - Turn off the light (optionally target a specific bulb)
+3. **set_warm_white(dimming: int = 100, bulb_ip: str | None = None, bulb_port: int | None = None)** - Set warm white color (always sets warm white)
+4. **set_daylight(dimming: int = 100, bulb_ip: str | None = None, bulb_port: int | None = None)** - Set daylight color (always sets daylight)
+5. **adjust_brightness(brightness_percent: int, bulb_ip: str | None = None, bulb_port: int | None = None)** - Adjust brightness while maintaining current color scene
+6. **get_bulb_status(bulb_ip: str | None = None, bulb_port: int | None = None)** - Check current light status (on/off, brightness, color mode)
+7. **get_bulb_info(bulb_ip: str | None = None, bulb_port: int | None = None)** - Get light configuration information
 
 
 ### Example Commands

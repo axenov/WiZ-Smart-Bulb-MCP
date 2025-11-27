@@ -8,10 +8,10 @@ Supports multiple languages and intelligent brightness control
 import os
 import socket
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 from fastmcp import FastMCP
 
-# Environment variables for bulb configuration
+# Environment variables for default bulb configuration
 BULB_IP = os.getenv("WIZ_BULB_IP", "192.168.0.148")
 BULB_PORT = int(os.getenv("WIZ_BULB_PORT", "38899"))
 
@@ -88,34 +88,53 @@ class WizBulbController:
         }
         return self.send_command(command) is not None
 
-# Initialize the bulb controller
-bulb_controller = WizBulbController(BULB_IP, BULB_PORT)
+class BulbManager:
+    """Keeps track of bulb controllers for multiple lamps."""
+
+    def __init__(self, default_ip: str, default_port: int):
+        self.default_ip = default_ip
+        self.default_port = default_port
+        self._controllers: Dict[Tuple[str, int], WizBulbController] = {}
+
+    def get_controller(self, ip: Optional[str] = None, port: Optional[int] = None) -> Tuple[WizBulbController, str, int]:
+        """Return a controller for the given bulb, creating one if needed."""
+        target_ip = ip or self.default_ip
+        target_port = int(port) if port is not None else self.default_port
+        key = (target_ip, target_port)
+
+        if key not in self._controllers:
+            self._controllers[key] = WizBulbController(target_ip, target_port)
+
+        return self._controllers[key], target_ip, target_port
+
+
+# Initialize the bulb manager for single or multiple lamps
+bulb_manager = BulbManager(BULB_IP, BULB_PORT)
 
 # Create FastMCP server
 app = FastMCP("wiz-bulb-controller")
 
-@app.tool()
-def turn_off_bulb() -> str:
-    """Turn off the light/lamp/bulb. Use this when user asks to turn off the light, switch off the lamp, or turn off the bulb. 
+def turn_off_bulb(bulb_ip: Optional[str] = None, bulb_port: Optional[int] = None) -> str:
+    """Turn off the light/lamp/bulb. Use this when user asks to turn off the light, switch off the lamp, or turn off the bulb.
     This will completely turn off the smart light bulb."""
-    success = bulb_controller.turn_off()
+    controller, ip, port = bulb_manager.get_controller(bulb_ip, bulb_port)
+    success = controller.turn_off()
     if success:
-        return f"✅ Light turned off successfully (IP: {BULB_IP}:{BULB_PORT})"
+        return f"✅ Light turned off successfully (IP: {ip}:{port})"
     else:
-        return f"❌ Failed to turn off light (IP: {BULB_IP}:{BULB_PORT})"
+        return f"❌ Failed to turn off light (IP: {ip}:{port})"
 
-@app.tool()
-def turn_on_bulb() -> str:
+def turn_on_bulb(bulb_ip: Optional[str] = None, bulb_port: Optional[int] = None) -> str:
     """Turn on the light/lamp/bulb. Use this when user asks to turn on the light, switch on the lamp, or turn on the bulb.
     This will turn on the light with its current color and brightness settings."""
-    success = bulb_controller.turn_on()
+    controller, ip, port = bulb_manager.get_controller(bulb_ip, bulb_port)
+    success = controller.turn_on()
     if success:
-        return f"✅ Light turned on successfully (IP: {BULB_IP}:{BULB_PORT})"
+        return f"✅ Light turned on successfully (IP: {ip}:{port})"
     else:
-        return f"❌ Failed to turn on light (IP: {BULB_IP}:{BULB_PORT})"
+        return f"❌ Failed to turn on light (IP: {ip}:{port})"
 
-@app.tool()
-def set_warm_white(dimming: int = 100) -> str:
+def set_warm_white(dimming: int = 100, bulb_ip: Optional[str] = None, bulb_port: Optional[int] = None) -> str:
     """Set the light/lamp/bulb to warm white color. Use this when user asks for warm light, cozy lighting, or warm white.
     Default brightness is 100% (full brightness) unless user specifically asks for different brightness.
     
@@ -125,16 +144,16 @@ def set_warm_white(dimming: int = 100) -> str:
     if not 0 <= dimming <= 100:
         return "❌ Brightness value must be between 0 and 100"
     
-    success = bulb_controller.set_warm_white(dimming)
-    
+    controller, ip, port = bulb_manager.get_controller(bulb_ip, bulb_port)
+    success = controller.set_warm_white(dimming)
+
     if success:
         brightness_text = f"at {dimming}% brightness" if dimming != 100 else "at full brightness"
-        return f"✅ Light set to warm white {brightness_text} (IP: {BULB_IP}:{BULB_PORT})"
+        return f"✅ Light set to warm white {brightness_text} (IP: {ip}:{port})"
     else:
-        return f"❌ Failed to set light to warm white (IP: {BULB_IP}:{BULB_PORT})"
+        return f"❌ Failed to set light to warm white (IP: {ip}:{port})"
 
-@app.tool()
-def set_daylight(dimming: int = 100) -> str:
+def set_daylight(dimming: int = 100, bulb_ip: Optional[str] = None, bulb_port: Optional[int] = None) -> str:
     """Set the light/lamp/bulb to daylight/white color. Use this when user asks for bright light, daylight, white light, or natural lighting.
     Default brightness is 100% (full brightness) unless user specifically asks for different brightness.
     
@@ -144,19 +163,20 @@ def set_daylight(dimming: int = 100) -> str:
     if not 0 <= dimming <= 100:
         return "❌ Brightness value must be between 0 and 100"
     
-    success = bulb_controller.set_daylight(dimming)
+    controller, ip, port = bulb_manager.get_controller(bulb_ip, bulb_port)
+    success = controller.set_daylight(dimming)
     
     if success:
         brightness_text = f"at {dimming}% brightness" if dimming != 100 else "at full brightness"
-        return f"✅ Light set to daylight {brightness_text} (IP: {BULB_IP}:{BULB_PORT})"
+        return f"✅ Light set to daylight {brightness_text} (IP: {ip}:{port})"
     else:
-        return f"❌ Failed to set light to daylight (IP: {BULB_IP}:{BULB_PORT})"
+        return f"❌ Failed to set light to daylight (IP: {ip}:{port})"
 
-@app.tool()
-def get_bulb_status() -> str:
+def get_bulb_status(bulb_ip: Optional[str] = None, bulb_port: Optional[int] = None) -> str:
     """Get the current status of the light/lamp/bulb. Use this to check if the light is on/off, current brightness, and color mode.
     This is useful when user asks about the current state of the light."""
-    status = bulb_controller.get_status()
+    controller, ip, port = bulb_manager.get_controller(bulb_ip, bulb_port)
+    status = controller.get_status()
     if status and status.get('result'):
         result = status['result']
         state = "ON" if result.get('state', False) else "OFF"
@@ -169,12 +189,11 @@ def get_bulb_status() -> str:
         elif scene_id == 12:
             scene_name = "Daylight"
         
-        return f"🔍 Light Status:\n- State: {state}\n- Brightness: {dimming}%\n- Color Mode: {scene_name}\n- IP: {BULB_IP}:{BULB_PORT}"
+        return f"🔍 Light Status:\n- State: {state}\n- Brightness: {dimming}%\n- Color Mode: {scene_name}\n- IP: {ip}:{port}"
     else:
-        return f"❌ Could not retrieve light status (IP: {BULB_IP}:{BULB_PORT})"
+        return f"❌ Could not retrieve light status (IP: {ip}:{port})"
 
-@app.tool()
-def adjust_brightness(brightness_percent: int) -> str:
+def adjust_brightness(brightness_percent: int, bulb_ip: Optional[str] = None, bulb_port: Optional[int] = None) -> str:
     """Adjust the brightness of the light/lamp/bulb while maintaining the current color scene.
     Use this when user asks for brightness changes like 'make it dimmer', 'less bright', 'brighter', 'set to 50%', etc.
     
@@ -187,7 +206,8 @@ def adjust_brightness(brightness_percent: int) -> str:
         return "❌ Brightness value must be between 0 and 100"
     
     # Always check current status first
-    status = bulb_controller.get_status()
+    controller, ip, port = bulb_manager.get_controller(bulb_ip, bulb_port)
+    status = controller.get_status()
     if status and status.get('result'):
         result = status['result']
         current_scene = result.get('sceneId', 11)  # Default to warm white if unknown
@@ -202,26 +222,41 @@ def adjust_brightness(brightness_percent: int) -> str:
             "method": "setPilot",
             "params": {"sceneId": current_scene, "dimming": brightness_percent}
         }
-        success = bulb_controller.send_command(command) is not None
+        success = controller.send_command(command) is not None
         
         if success:
             scene_name = "Warm White" if current_scene == 11 else "Daylight" if current_scene == 12 else "Unknown"
-            return f"✅ Light brightness adjusted to {brightness_percent}% while maintaining {scene_name} color (IP: {BULB_IP}:{BULB_PORT})"
+            return f"✅ Light brightness adjusted to {brightness_percent}% while maintaining {scene_name} color (IP: {ip}:{port})"
         else:
-            return f"❌ Failed to adjust brightness (IP: {BULB_IP}:{BULB_PORT})"
+            return f"❌ Failed to adjust brightness (IP: {ip}:{port})"
     else:
-        return f"❌ Could not retrieve light status to adjust brightness (IP: {BULB_IP}:{BULB_PORT})"
+        return f"❌ Could not retrieve light status to adjust brightness (IP: {ip}:{port})"
 
 
-@app.tool()
-def get_bulb_info() -> str:
+def get_bulb_info(bulb_ip: Optional[str] = None, bulb_port: Optional[int] = None) -> str:
     """Get information about the configured light/lamp/bulb. Use this when user asks about the light setup or configuration."""
-    return f"🔍 Light Configuration:\n- IP Address: {BULB_IP}\n- Port: {BULB_PORT}\n- Available commands: turn off, warm white, daylight, check status"
+    _, ip, port = bulb_manager.get_controller(bulb_ip, bulb_port)
+    return (
+        "🔍 Light Configuration:\n"
+        f"- Default IP Address: {BULB_IP}\n"
+        f"- Default Port: {BULB_PORT}\n"
+        f"- Active target: {ip}:{port}\n"
+        "- Available commands: turn off, warm white, daylight, check status"
+    )
+
+# Register tools while keeping the underlying functions directly callable
+app.tool()(turn_off_bulb)
+app.tool()(turn_on_bulb)
+app.tool()(set_warm_white)
+app.tool()(set_daylight)
+app.tool()(get_bulb_status)
+app.tool()(adjust_brightness)
+app.tool()(get_bulb_info)
 
 if __name__ == "__main__":
     print(f"🚀 Starting Wiz Light MCP Server")
-    print(f"📡 Light IP: {BULB_IP}")
-    print(f"🔌 Light Port: {BULB_PORT}")
+    print(f"📡 Default Light IP: {BULB_IP}")
+    print(f"🔌 Default Light Port: {BULB_PORT}")
     print(f"✨ Available tools: turn_off_bulb, turn_on_bulb, set_warm_white, set_daylight, adjust_brightness, get_bulb_status, get_bulb_info")
     print(f"🌍 Multi-language support: English, German, Russian, and more")
     print(f"💡 Smart brightness: adjust_brightness() maintains current scene")
